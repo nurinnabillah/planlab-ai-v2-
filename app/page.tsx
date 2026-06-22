@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-import baselineData from "../src/data/seksyen7_grid_baseline.json";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+// import baselineData from "../src/data/seksyen7_grid_baseline.json";
 import { GridCell, Intervention, INTERVENTIONS } from "../types";
 import Header from "../src/components/Header";
 import InterventionToolbar from "../src/components/InterventionToolbar";
@@ -10,11 +10,35 @@ import CellDetailsPanel from "../src/components/CellDetailsPanel";
 import ScoreSummary from "../src/components/ScoreSummary";
 import { Sparkles, Info, HelpCircle, GraduationCap, ArrowUpRight, TrendingUp } from "lucide-react";
 
+const cloneCells = (source: GridCell[]): GridCell[] =>
+  source.map((cell) => ({
+    ...cell,
+    interventionId: undefined,
+  }));
+
 export default function App() {
   // Load baseline JSON dataset on startup
-  const [cells, setCells] = useState<GridCell[]>(() => {
-    return (baselineData as GridCell[]).map((cell) => ({ ...cell }));
-  });
+  const [cells, setCells] = useState<GridCell[]>([]);
+  const [isLoadingGrid, setIsLoadingGrid] = useState(true);
+  const baselineRef = useRef<GridCell[]>([]);
+
+  useEffect(() => {
+    const fetchGrid = async () => {
+      try {
+        const res = await fetch("/api/grid");
+        const data = await res.json();
+        if (data.cells) {
+          setCells(data.cells);
+          baselineRef.current = data.cells; // save baseline
+        }
+      } catch (err) {
+        console.error("Failed to load grid:", err);
+      } finally {
+        setIsLoadingGrid(false);
+      }
+    };
+    fetchGrid();
+  }, []);
 
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [selectedInterventionId, setSelectedInterventionId] = useState<string | null>(null);
@@ -73,7 +97,7 @@ export default function App() {
 
   // Reset simulator back to unaltered state
   const handleReset = () => {
-    setCells((baselineData as GridCell[]).map((cell) => ({ ...cell })));
+    setCells(baselineRef.current.map((cell) => ({ ...cell })));
     setSelectedCellId(null);
     setSelectedInterventionId(null);
   };
@@ -81,7 +105,7 @@ export default function App() {
   // Apply Quick presets for demonstration value
   const handleApplyPreset = (presetName: string) => {
     // Start clean first
-    const cleanCells = (baselineData as GridCell[]).map((cell) => ({ ...cell }));
+    const cleanCells = baselineRef.current.map((cell) => ({ ...cell }));
 
     if (presetName === "green_city") {
       // Apply street trees to all secondary roads & highways
@@ -214,9 +238,9 @@ export default function App() {
           .filter((c: any) => c.interventionId)
           .map((c: any) => c.interventionId);
 
-        const res = await fetch('/api/gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/gemini", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             cells,
             interventions: activeInterventionNames,
@@ -226,7 +250,7 @@ export default function App() {
         const data = await res.json();
         if (data.suggestions) setAiPlanningAdvices(data.suggestions);
       } catch (err) {
-        console.error('Gemini fetch error:', err);
+        console.error("Gemini fetch error:", err);
       } finally {
         setAiLoading(false);
       }
@@ -292,7 +316,10 @@ export default function App() {
             {aiLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="p-3 rounded-lg border bg-slate-50 border-slate-200 animate-pulse h-20" />
+                  <div
+                    key={i}
+                    className="p-3 rounded-lg border bg-slate-50 border-slate-200 animate-pulse h-20"
+                  />
                 ))}
               </div>
             ) : (
@@ -308,12 +335,14 @@ export default function App() {
                         status === "alert" || status === "critical"
                           ? "bg-rose-50 border-rose-200 text-rose-850"
                           : status === "warning"
-                          ? "bg-amber-50 border-amber-200 text-amber-850"
-                          : "bg-emerald-50 border-emerald-200 text-emerald-850"
+                            ? "bg-amber-50 border-amber-200 text-amber-850"
+                            : "bg-emerald-50 border-emerald-200 text-emerald-850"
                       }`}
                     >
                       <div className="flex-shrink-0 mt-0.5">
-                        {(status === "alert" || status === "critical") && <Info className="h-4 w-4 text-rose-600" />}
+                        {(status === "alert" || status === "critical") && (
+                          <Info className="h-4 w-4 text-rose-600" />
+                        )}
                         {status === "warning" && <HelpCircle className="h-4 w-4 text-amber-600" />}
                         {status === "success" && <Sparkles className="h-4 w-4 text-emerald-600" />}
                       </div>

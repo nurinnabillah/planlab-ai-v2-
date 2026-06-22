@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import Map, { Source, Layer, Marker, LayerProps, MapRef } from "react-map-gl/mapbox";
@@ -18,7 +18,7 @@ interface PlanLabMapProps {
 type OverlayLayer = "landuse" | "heatrisk" | "walkability" | "greenspace" | "noise";
 
 // Next.js syntax (new — fix this)
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 export default function PlanLabMap({
   cells,
@@ -207,46 +207,51 @@ export default function PlanLabMap({
           </span>
           <button
             onClick={() => setActiveLayer("landuse")}
-            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${activeLayer === "landuse"
+            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${
+              activeLayer === "landuse"
                 ? "bg-white text-slate-800 shadow-sm border border-slate-200"
                 : "text-slate-500 hover:text-slate-800"
-              }`}
+            }`}
           >
             Land Use
           </button>
           <button
             onClick={() => setActiveLayer("heatrisk")}
-            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${activeLayer === "heatrisk"
+            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${
+              activeLayer === "heatrisk"
                 ? "bg-white text-red-650 shadow-sm border border-slate-200"
                 : "text-slate-500 hover:text-slate-800"
-              }`}
+            }`}
           >
             Heat Risk
           </button>
           <button
             onClick={() => setActiveLayer("greenspace")}
-            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${activeLayer === "greenspace"
+            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${
+              activeLayer === "greenspace"
                 ? "bg-white text-emerald-700 shadow-sm border border-slate-200"
                 : "text-slate-500 hover:text-slate-800"
-              }`}
+            }`}
           >
             GSI (Green)
           </button>
           <button
             onClick={() => setActiveLayer("walkability")}
-            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${activeLayer === "walkability"
+            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${
+              activeLayer === "walkability"
                 ? "bg-white text-blue-700 shadow-sm border border-slate-200"
                 : "text-slate-500 hover:text-slate-800"
-              }`}
+            }`}
           >
             Walkability
           </button>
           <button
             onClick={() => setActiveLayer("noise")}
-            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${activeLayer === "noise"
+            className={`px-2.5 py-1 rounded cursor-pointer font-semibold transition-all ${
+              activeLayer === "noise"
                 ? "bg-white text-violet-700 shadow-sm border border-slate-200"
                 : "text-slate-500 hover:text-slate-800"
-              }`}
+            }`}
           >
             Noise
           </button>
@@ -355,25 +360,124 @@ export default function PlanLabMap({
       </div>
 
       {/* Landscape Land-use Map Legend */}
+      {/* Dynamic Legend */}
       <div className="border-t border-slate-100 pt-3 bg-slate-50 rounded-lg px-3 py-3">
-        <h4 className="text-[10px] uppercase font-mono font-bold tracking-wider text-slate-400 mb-2">
-          Land-Use Legend
-        </h4>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-          {["Residential", "Commercial", "Green", "Road", "Water", "Public Facility"].map((use) => {
-            const style = getLandUseStyle(use);
-            return (
-              <div key={use} className="flex items-center gap-1.5">
-                <span
-                  className={`inline-block w-3.5 h-3.5 rounded border ${style.bg} ${style.border}`}
-                ></span>
-                <span className="text-[11px] text-slate-600 font-semibold whitespace-nowrap truncate">
-                  {style.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        {activeLayer === "landuse" && (
+          <>
+            <h4 className="text-[10px] uppercase font-mono font-bold tracking-wider text-slate-400 mb-2">
+              Land-Use Legend
+            </h4>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {["Residential", "Commercial", "Green", "Road", "Water", "Public Facility"].map(
+                (use) => {
+                  const style = getLandUseStyle(use);
+                  return (
+                    <div key={use} className="flex items-center gap-1.5">
+                      <span
+                        className={`inline-block w-3.5 h-3.5 rounded border ${style.bg} ${style.border}`}
+                      ></span>
+                      <span className="text-[11px] text-slate-600 font-semibold whitespace-nowrap truncate">
+                        {style.label}
+                      </span>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+          </>
+        )}
+
+        {activeLayer === "heatrisk" && (
+          <>
+            <h4 className="text-[10px] uppercase font-mono font-bold tracking-wider text-slate-400 mb-2">
+              Heat Risk — Lower is Better 🌡️
+            </h4>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { color: "bg-red-400", label: "High Risk (60+)" },
+                { color: "bg-orange-400", label: "Medium (45–60)" },
+                { color: "bg-yellow-300", label: "Low (30–45)" },
+                { color: "bg-blue-400", label: "Very Low (<30)" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1.5">
+                  <span
+                    className={`inline-block w-3.5 h-3.5 rounded ${item.color} opacity-70`}
+                  ></span>
+                  <span className="text-[11px] text-slate-600 font-semibold">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeLayer === "greenspace" && (
+          <>
+            <h4 className="text-[10px] uppercase font-mono font-bold tracking-wider text-slate-400 mb-2">
+              Green Space Index — Higher is Better 🌳
+            </h4>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { color: "bg-green-700", label: "Excellent (85+)" },
+                { color: "bg-emerald-400", label: "Good (70–85)" },
+                { color: "bg-amber-400", label: "Fair (50–70)" },
+                { color: "bg-orange-800", label: "Poor (<50)" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1.5">
+                  <span
+                    className={`inline-block w-3.5 h-3.5 rounded ${item.color} opacity-70`}
+                  ></span>
+                  <span className="text-[11px] text-slate-600 font-semibold">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeLayer === "walkability" && (
+          <>
+            <h4 className="text-[10px] uppercase font-mono font-bold tracking-wider text-slate-400 mb-2">
+              Walkability Score — Higher is Better 🚶
+            </h4>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { color: "bg-emerald-400", label: "Excellent (75+)" },
+                { color: "bg-teal-400", label: "Good (60–75)" },
+                { color: "bg-yellow-400", label: "Fair (41–60)" },
+                { color: "bg-rose-400", label: "Poor (<41)" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1.5">
+                  <span
+                    className={`inline-block w-3.5 h-3.5 rounded ${item.color} opacity-70`}
+                  ></span>
+                  <span className="text-[11px] text-slate-600 font-semibold">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeLayer === "noise" && (
+          <>
+            <h4 className="text-[10px] uppercase font-mono font-bold tracking-wider text-slate-400 mb-2">
+              Noise Level — Lower is Better 🔇
+            </h4>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { color: "bg-purple-400", label: "Very Loud (65+)" },
+                { color: "bg-fuchsia-400", label: "Moderate (40–65)" },
+                { color: "bg-slate-300", label: "Quiet (21–40)" },
+                { color: "bg-teal-400", label: "Very Quiet (<21)" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1.5">
+                  <span
+                    className={`inline-block w-3.5 h-3.5 rounded ${item.color} opacity-70`}
+                  ></span>
+                  <span className="text-[11px] text-slate-600 font-semibold">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

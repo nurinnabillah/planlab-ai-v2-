@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import * as Icons from "lucide-react";
@@ -99,10 +99,11 @@ export default function InterventionToolbar({
           id="btn-mode-inspect"
           onClick={() => onSelect(null)}
           title="Inspect & Select Cell"
-          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-all ${isExpanded ? "flex-1" : "w-full"} ${selectedId === null
+          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-all ${isExpanded ? "flex-1" : "w-full"} ${
+            selectedId === null
               ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm"
               : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-            }`}
+          }`}
         >
           <Icons.Info className="h-3.5 w-3.5 shrink-0" />
           {isExpanded && <span>Inspect & Select Cell</span>}
@@ -144,11 +145,13 @@ export default function InterventionToolbar({
                       onMouseEnter={() => setHoveredIntervention(item)}
                       onMouseLeave={() => setHoveredIntervention(null)}
                       title={!isExpanded ? item.name : undefined}
-                      className={`group w-full text-left rounded-lg border text-xs transition-all relative overflow-hidden cursor-pointer flex items-start gap-3 ${isExpanded ? "p-3" : "p-2 justify-center"
-                        } ${isActive
+                      className={`group w-full text-left rounded-lg border text-xs transition-all relative overflow-hidden cursor-pointer flex items-start gap-3 ${
+                        isExpanded ? "p-3" : "p-2 justify-center"
+                      } ${
+                        isActive
                           ? `${item.color} ${item.borderColor} ring-1 ring-offset-2 ring-offset-white ring-blue-500 shadow-sm`
                           : "bg-white border-slate-200 text-slate-700 hover:border-slate-350 hover:bg-slate-50"
-                        }`}
+                      }`}
                     >
                       {/* Active indicator dot */}
                       {isActive && (
@@ -160,10 +163,11 @@ export default function InterventionToolbar({
 
                       {/* Icon */}
                       <div
-                        className={`p-1.5 rounded-md transition-colors shrink-0 ${isActive
+                        className={`p-1.5 rounded-md transition-colors shrink-0 ${
+                          isActive
                             ? "bg-white/40"
                             : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-800"
-                          }`}
+                        }`}
                       >
                         {loadIcon(item.icon)}
                       </div>
@@ -183,18 +187,19 @@ export default function InterventionToolbar({
                                 const valNum = value as number;
                                 const isPositiveImpact =
                                   key === "noise_score" ||
-                                    key === "heat_risk_score" ||
-                                    key === "traffic_score"
+                                  key === "heat_risk_score" ||
+                                  key === "traffic_score"
                                     ? valNum < 0 // lower is better for risk scores
                                     : valNum > 0; // higher is better for index scores
 
                                 return (
                                   <span
                                     key={key}
-                                    className={`text-[9px] font-mono font-bold px-1 rounded-sm border ${isPositiveImpact
+                                    className={`text-[9px] font-mono font-bold px-1 rounded-sm border ${
+                                      isPositiveImpact
                                         ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                                         : "bg-rose-50 text-rose-700 border-rose-100"
-                                      }`}
+                                    }`}
                                   >
                                     {key
                                       .replace("_score", "")

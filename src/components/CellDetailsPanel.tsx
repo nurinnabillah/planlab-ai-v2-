@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import { GridCell, Intervention, INTERVENTIONS } from "../../types";
@@ -94,7 +94,7 @@ export default function CellDetailsPanel({ cell, onClearIntervention }: CellDeta
               Latitude (Center)
             </span>
             <span className="font-mono text-slate-800 font-bold">
-              {cell.center_lat.toFixed(6)}° N
+              {Number(cell.center_lat).toFixed(6)}° N
             </span>
           </div>
           <div>
@@ -102,7 +102,7 @@ export default function CellDetailsPanel({ cell, onClearIntervention }: CellDeta
               Longitude (Center)
             </span>
             <span className="font-mono text-slate-800 font-bold">
-              {cell.center_lng.toFixed(6)}° E
+              {Number(cell.center_lng).toFixed(6)}° E
             </span>
           </div>
         </div>
@@ -206,12 +206,13 @@ export default function CellDetailsPanel({ cell, onClearIntervention }: CellDeta
                         </span>
 
                         <span
-                          className={`text-[10px] font-mono rounded px-1.5 py-0.5 border font-bold ${isPositiveValue
+                          className={`text-[10px] font-mono rounded px-1.5 py-0.5 border font-bold ${
+                            isPositiveValue
                               ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                               : isNegativeValue
                                 ? "bg-rose-50 text-rose-700 border-rose-100"
                                 : "bg-slate-100 text-slate-500 border-slate-200"
-                            }`}
+                          }`}
                         >
                           {delta > 0 ? `+${delta}` : delta}
                         </span>

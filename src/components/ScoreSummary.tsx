@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import { GridCell, INTERVENTIONS } from "../../types";
@@ -250,12 +250,13 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
 
                   {diff !== 0 ? (
                     <span
-                      className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${isPositiveOutcome
+                      className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                        isPositiveOutcome
                           ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                           : isNegativeOutcome
                             ? "bg-rose-50 text-rose-700 border-rose-100"
                             : "bg-slate-100 text-slate-500 border-slate-200"
-                        }`}
+                      }`}
                     >
                       {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)}
                     </span>

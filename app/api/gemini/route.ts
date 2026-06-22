@@ -13,13 +13,25 @@ export async function POST(req: NextRequest) {
     }, {});
 
     const avgScores = {
-      traffic: Math.round(cells.reduce((s: number, c: any) => s + c.traffic_score, 0) / cells.length),
+      traffic: Math.round(
+        cells.reduce((s: number, c: any) => s + c.traffic_score, 0) / cells.length
+      ),
       noise: Math.round(cells.reduce((s: number, c: any) => s + c.noise_score, 0) / cells.length),
-      green: Math.round(cells.reduce((s: number, c: any) => s + c.green_space_index, 0) / cells.length),
-      heat: Math.round(cells.reduce((s: number, c: any) => s + c.heat_risk_score, 0) / cells.length),
-      walkability: Math.round(cells.reduce((s: number, c: any) => s + c.walkability_score, 0) / cells.length),
-      accessibility: Math.round(cells.reduce((s: number, c: any) => s + c.accessibility_score, 0) / cells.length),
-      transport: Math.round(cells.reduce((s: number, c: any) => s + c.public_transport_score, 0) / cells.length),
+      green: Math.round(
+        cells.reduce((s: number, c: any) => s + c.green_space_index, 0) / cells.length
+      ),
+      heat: Math.round(
+        cells.reduce((s: number, c: any) => s + c.heat_risk_score, 0) / cells.length
+      ),
+      walkability: Math.round(
+        cells.reduce((s: number, c: any) => s + c.walkability_score, 0) / cells.length
+      ),
+      accessibility: Math.round(
+        cells.reduce((s: number, c: any) => s + c.accessibility_score, 0) / cells.length
+      ),
+      transport: Math.round(
+        cells.reduce((s: number, c: any) => s + c.public_transport_score, 0) / cells.length
+      ),
     };
 
     const prompt = `

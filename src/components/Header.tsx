@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import { Layers, RotateCcw, AlertCircle, Database, HelpCircle, Shuffle } from "lucide-react";
