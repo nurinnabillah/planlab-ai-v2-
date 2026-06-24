@@ -13,6 +13,8 @@ interface PlanLabMapProps {
   onSelectCell: (cell: GridCell) => void;
   activeIntervention: Intervention | null;
   isSidebarExpanded?: boolean;
+  mapStyle: string;
+  onMapStyleChange: (style: string) => void;
 }
 
 type OverlayLayer = "landuse" | "heatrisk" | "walkability" | "greenspace" | "noise";
@@ -26,9 +28,11 @@ export default function PlanLabMap({
   onSelectCell,
   activeIntervention,
   isSidebarExpanded,
+  mapStyle,
+  onMapStyleChange,
 }: PlanLabMapProps) {
   const [activeLayer, setActiveLayer] = useState<OverlayLayer>("landuse");
-  const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/light-v11");
+  //const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/light-v11");
   const [hoverInfo, setHoverInfo] = useState<{ feature: any; x: number; y: number } | null>(null);
   const mapRef = useRef<MapRef>(null);
 
@@ -315,7 +319,7 @@ export default function PlanLabMap({
             }}
           >
             <button
-              onClick={() => setMapStyle("mapbox://styles/mapbox/light-v11")}
+              onClick={() => onMapStyleChange("mapbox://styles/mapbox/light-v11")}
               style={{
                 padding: "7px 12px",
                 fontSize: 11,
@@ -329,7 +333,7 @@ export default function PlanLabMap({
               🗺️
             </button>
             <button
-              onClick={() => setMapStyle("mapbox://styles/mapbox/satellite-streets-v12")}
+              onClick={() => onMapStyleChange("mapbox://styles/mapbox/satellite-streets-v12")}
               style={{
                 padding: "7px 12px",
                 fontSize: 11,

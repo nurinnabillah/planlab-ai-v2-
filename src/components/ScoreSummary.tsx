@@ -9,17 +9,16 @@ interface ScoreSummaryProps {
 }
 
 export default function ScoreSummary({ cells }: ScoreSummaryProps) {
-  // Calculate baselines (unaltered values)
   const count = cells.length || 1;
 
   const calculateAverages = (items: GridCell[], applyInterventions: boolean) => {
-    let totalGreen = 0;
-    let totalWalk = 0;
-    let totalAccess = 0;
-    let totalTransit = 0;
-    let totalHeat = 0;
-    let totalNoise = 0;
-    let totalTraffic = 0;
+    let totalGreen = 0,
+      totalWalk = 0,
+      totalAccess = 0,
+      totalTransit = 0;
+    let totalHeat = 0,
+      totalNoise = 0,
+      totalTraffic = 0;
 
     items.forEach((cell) => {
       let g = cell.green_space_index;
@@ -67,16 +66,43 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
   const baselines = calculateAverages(cells, false);
   const simulateds = calculateAverages(cells, true);
 
-  // Cards metadata
+  // Get status label and color based on score and direction
+  const getStatus = (score: number, better: "high" | "low") => {
+    const effectiveScore = better === "low" ? 100 - score : score;
+    if (effectiveScore >= 70)
+      return {
+        label: "Good",
+        dot: "bg-emerald-500",
+        text: "text-emerald-700",
+        bg: "bg-emerald-50",
+        border: "border-emerald-200",
+      };
+    if (effectiveScore >= 40)
+      return {
+        label: "Warning",
+        dot: "bg-amber-500",
+        text: "text-amber-700",
+        bg: "bg-amber-50",
+        border: "border-amber-200",
+      };
+    return {
+      label: "Alert",
+      dot: "bg-rose-500",
+      text: "text-rose-700",
+      bg: "bg-rose-50",
+      border: "border-rose-200",
+    };
+  };
+
   const cards = [
     {
       key: "green_space_index",
       label: "Green Space Index",
       baseline: baselines.green_space_index,
       simulated: simulateds.green_space_index,
-      better: "high",
+      better: "high" as const,
       icon: "Trees",
-      description: "Average ecological/canopy score",
+      description: "Higher is better",
       theme: "emerald",
     },
     {
@@ -84,9 +110,9 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
       label: "Walkability Index",
       baseline: baselines.walkability_score,
       simulated: simulateds.walkability_score,
-      better: "high",
+      better: "high" as const,
       icon: "Footprints",
-      description: "Pedestrian accessibility & safety",
+      description: "Higher is better",
       theme: "teal",
     },
     {
@@ -94,9 +120,9 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
       label: "Public Accessibility",
       baseline: baselines.accessibility_score,
       simulated: simulateds.accessibility_score,
-      better: "high",
+      better: "high" as const,
       icon: "Signpost",
-      description: "Local mixed destination reach",
+      description: "Higher is better",
       theme: "cyan",
     },
     {
@@ -104,9 +130,9 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
       label: "Transit Efficiency",
       baseline: baselines.public_transport_score,
       simulated: simulateds.public_transport_score,
-      better: "high",
+      better: "high" as const,
       icon: "Bus",
-      description: "Microtransit shelter integration",
+      description: "Higher is better",
       theme: "blue",
     },
     {
@@ -114,9 +140,9 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
       label: "Heat Risk Score",
       baseline: baselines.heat_risk_score,
       simulated: simulateds.heat_risk_score,
-      better: "low",
+      better: "low" as const,
       icon: "ThermometerSun",
-      description: "Urban Heat Island threat level",
+      description: "Lower is better",
       theme: "orange",
     },
     {
@@ -124,9 +150,9 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
       label: "Noise Score",
       baseline: baselines.noise_score,
       simulated: simulateds.noise_score,
-      better: "low",
+      better: "low" as const,
       icon: "VolumeX",
-      description: "Decibel noise pollution index",
+      description: "Lower is better",
       theme: "violet",
     },
     {
@@ -134,9 +160,9 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
       label: "Traffic Score",
       baseline: baselines.traffic_score,
       simulated: simulateds.traffic_score,
-      better: "low",
+      better: "low" as const,
       icon: "Car",
-      description: "Average vehicular load volume",
+      description: "Lower is better",
       theme: "rose",
     },
   ];
@@ -144,92 +170,59 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
   const getThemeColors = (theme: string) => {
     switch (theme) {
       case "emerald":
-        return {
-          text: "text-emerald-700",
-          border: "border-emerald-200",
-          bg: "bg-emerald-50",
-          shadow: "shadow-emerald-500/5",
-        };
+        return { text: "text-emerald-700", bg: "bg-emerald-50" };
       case "teal":
-        return {
-          text: "text-teal-700",
-          border: "border-teal-200",
-          bg: "bg-teal-50",
-          shadow: "shadow-teal-500/5",
-        };
+        return { text: "text-teal-700", bg: "bg-teal-50" };
       case "cyan":
-        return {
-          text: "text-cyan-700",
-          border: "border-cyan-200",
-          bg: "bg-cyan-50",
-          shadow: "shadow-cyan-500/5",
-        };
+        return { text: "text-cyan-700", bg: "bg-cyan-50" };
       case "blue":
-        return {
-          text: "text-blue-700",
-          border: "border-blue-200",
-          bg: "bg-blue-50",
-          shadow: "shadow-blue-500/5",
-        };
+        return { text: "text-blue-700", bg: "bg-blue-50" };
       case "orange":
-        return {
-          text: "text-orange-700",
-          border: "border-orange-200",
-          bg: "bg-orange-50",
-          shadow: "shadow-orange-500/5",
-        };
+        return { text: "text-orange-700", bg: "bg-orange-50" };
       case "violet":
-        return {
-          text: "text-violet-700",
-          border: "border-violet-200",
-          bg: "bg-violet-50",
-          shadow: "shadow-violet-500/5",
-        };
+        return { text: "text-violet-700", bg: "bg-violet-50" };
       default:
-        return {
-          text: "text-rose-700",
-          border: "border-rose-200",
-          bg: "bg-rose-50",
-          shadow: "shadow-rose-500/5",
-        };
+        return { text: "text-rose-700", bg: "bg-rose-50" };
     }
   };
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-      {/* Label and title */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
         <div>
           <h3 className="font-display font-bold text-sm text-slate-800 uppercase tracking-wide">
             Scenario Impact Summary
           </h3>
           <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
-            Real-time average values across all 100 simulation grid cells.
+            Average livability scores across all 100 grid cells in Seksyen 7 pilot area.
+            <span className="ml-1 text-slate-400">
+              🟢 Good (70+) &nbsp; 🟡 Warning (40–70) &nbsp; 🔴 Alert (&lt;40)
+            </span>
           </p>
         </div>
-        <div className="text-[10px] uppercase font-mono font-bold bg-slate-50 text-slate-550 px-2.5 py-1 rounded border border-slate-200">
+        <div className="text-[10px] uppercase font-mono font-bold bg-slate-50 text-slate-500 px-2.5 py-1 rounded border border-slate-200">
           Sandbox Assessment Mode
         </div>
       </div>
 
-      {/* Grid of cards */}
+      {/* Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {cards.map((card) => {
           const diff = card.simulated - card.baseline;
           const isPositiveOutcome = card.better === "high" ? diff > 0 : diff < 0;
           const isNegativeOutcome = card.better === "high" ? diff < 0 : diff > 0;
           const style = getThemeColors(card.theme);
-
+          const status = getStatus(card.simulated, card.better);
           const IconComp = (Icons as any)[card.icon] || Icons.CircleDot;
 
           return (
             <div
               key={card.key}
-              id={`kpi-card-${card.key}`}
-              className={`bg-white border border-slate-200 rounded-lg p-3.5 transition-all text-left flex flex-col justify-between hover:border-slate-350 hover:bg-slate-50/50`}
+              className="bg-white border border-slate-200 rounded-lg p-3.5 transition-all flex flex-col justify-between hover:border-slate-300 hover:bg-slate-50/50"
             >
               <div>
-                {/* Header with icon and name */}
+                {/* Header */}
                 <div className="flex items-center justify-between mb-2">
                   <span
                     className="text-[10px] font-bold text-slate-500 uppercase tracking-tight truncate max-w-[80%]"
@@ -242,12 +235,11 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
                   </div>
                 </div>
 
-                {/* Score and Change Tag */}
+                {/* Score and delta */}
                 <div className="flex items-baseline gap-1.5 flex-wrap">
                   <span className="font-mono text-xl font-bold tracking-tight text-slate-950">
                     {card.simulated.toFixed(2)}
                   </span>
-
                   {diff !== 0 ? (
                     <span
                       className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
@@ -266,9 +258,20 @@ export default function ScoreSummary({ cells }: ScoreSummaryProps) {
                     </span>
                   )}
                 </div>
+
+                {/* Status badge */}
+                <div
+                  className={`mt-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${status.bg} ${status.text} ${status.border} border`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
+                  {status.label}
+                </div>
+
+                {/* Direction hint */}
+                <p className="text-[9px] text-slate-400 mt-1">{card.description}</p>
               </div>
 
-              {/* Sub-label baseline indicator */}
+              {/* Baseline */}
               <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] font-mono text-slate-400">
                 <span>Baseline:</span>
                 <span>{card.baseline.toFixed(2)}</span>

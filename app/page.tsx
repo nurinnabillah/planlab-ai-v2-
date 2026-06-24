@@ -21,6 +21,8 @@ export default function App() {
   const [cells, setCells] = useState<GridCell[]>([]);
   const [isLoadingGrid, setIsLoadingGrid] = useState(true);
   const baselineRef = useRef<GridCell[]>([]);
+  const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/light-v11");
+  const [hasNewModifications, setHasNewModifications] = useState(false);
 
   useEffect(() => {
     const fetchGrid = async () => {
@@ -59,6 +61,7 @@ export default function App() {
   // Handle cell click (Applying paint brush or inspecting)
   const handleSelectCell = (clickedCell: GridCell) => {
     if (selectedInterventionId) {
+      setHasNewModifications(true);
       setCells((prev) =>
         prev.map((c) => {
           if (c.grid_id === clickedCell.grid_id) {
@@ -100,6 +103,8 @@ export default function App() {
     setCells(baselineRef.current.map((cell) => ({ ...cell })));
     setSelectedCellId(null);
     setSelectedInterventionId(null);
+    setAiPlanningAdvices([]);
+    setHasNewModifications(false);
   };
 
   // Apply Quick presets for demonstration value
@@ -252,6 +257,18 @@ export default function App() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    const scenarioName = prompt("Enter a name for this PDF report:") || "Scenario";
+    const { generateScenarioPDF } = await import("../src/lib/generatePDF");
+    await generateScenarioPDF({
+      scenarioName,
+      cells,
+      aiAdvices: aiPlanningAdvices,
+      mapElementId: "planlab-map",
+      mapStyle,
+    });
+  };
+
   // Save current scenario to DB
   const handleSaveScenario = async () => {
     const name = prompt("Enter scenario name:");
@@ -266,7 +283,7 @@ export default function App() {
 
     // Build summary text from current AI advices
     const summary = aiPlanningAdvices
-      .map((a) => `${a.title}: ${a.description || a.text}`)
+      .map((a) => `${a.type || "success"}|${a.title}|${a.description || a.text}`)
       .join("\n\n");
 
     try {
@@ -310,6 +327,24 @@ export default function App() {
         }))
       );
       setSelectedCellId(null);
+      setHasNewModifications(false);
+
+      // Load saved summary from database instead of regenerating
+      if (chosen.summary && chosen.summary.trim() !== "") {
+        const savedAdvices = chosen.summary.split("\n\n").map((block: string) => {
+          const parts = block.split("|");
+          return {
+            type: parts[0] || "success",
+            title: parts[1] || "",
+            description: parts[2] || "",
+          };
+        });
+        setAiPlanningAdvices(savedAdvices);
+      } else {
+        // No saved summary — clear advisory
+        setAiPlanningAdvices([]);
+      }
+
       alert(`Loaded: ${chosen.name}`);
     } catch (err) {
       console.error("Load error:", err);
@@ -349,13 +384,17 @@ export default function App() {
 
         {/* CENTER COMPONENT: Visual Map Overlay Grid */}
         <div className="flex-1 flex flex-col space-y-4 min-w-0">
-          <PlanLabMap
-            cells={cells}
-            selectedCell={selectedCell}
-            onSelectCell={handleSelectCell}
-            activeIntervention={activeIntervention}
-            isSidebarExpanded={isSidebarExpanded}
-          />
+          <div id="planlab-map">
+            <PlanLabMap
+              cells={cells}
+              selectedCell={selectedCell}
+              onSelectCell={handleSelectCell}
+              activeIntervention={activeIntervention}
+              isSidebarExpanded={isSidebarExpanded}
+              mapStyle={mapStyle}
+              onMapStyleChange={setMapStyle}
+            />
+          </div>
 
           {/* Interactive GIS Scenario Advisor Panel */}
           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm shrink-0">
@@ -366,18 +405,30 @@ export default function App() {
                   PlanLab AI Local Simulation Advisory
                 </h4>
               </div>
-              <button
-                onClick={fetchAdvice}
-                disabled={aiLoading || !hasModifications}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                  hasModifications && !aiLoading
-                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 cursor-pointer"
-                    : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                }`}
-              >
-                <Sparkles className="h-3 w-3" />
-                {aiLoading ? "Generating..." : "Generate Advisory"}
-              </button>
+
+              <div className="flex items-center gap-2">
+                {(hasNewModifications || (hasModifications && aiPlanningAdvices.length === 0)) && (
+                  <button
+                    onClick={fetchAdvice}
+                    disabled={aiLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border bg-blue-600 text-white border-blue-600 hover:bg-blue-700 cursor-pointer"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    {aiLoading ? "Generating..." : "Generate Advisory"}
+                  </button>
+                )}
+
+                {aiPlanningAdvices.length > 0 && (
+                  <button
+                    onClick={handleDownloadPDF}
+                    title="Download scenario report as PDF"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 cursor-pointer"
+                  >
+                    <TrendingUp className="h-3 w-3" />
+                    Download PDF
+                  </button>
+                )}
+              </div>
             </div>
 
             {aiLoading ? (
@@ -446,8 +497,8 @@ export default function App() {
           <div className="flex items-center gap-3 mt-1.5 sm:mt-0 font-mono text-slate-400 text-[10px]">
             <span>Grid Origin: A1 (Top-Left) to J10 (Bottom-Right)</span>
             <span>•</span>
-            <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-bold border border-blue-100">
-              Unconnected Sandbox Mode
+            <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold border border-emerald-100">
+              Connected • Cloud SQL
             </span>
           </div>
         </div>
