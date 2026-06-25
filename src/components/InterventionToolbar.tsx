@@ -28,11 +28,20 @@ export default function InterventionToolbar({
   onToggleExpand,
 }: InterventionToolbarProps) {
   // Group by category
+  const [search, setSearch] = React.useState("");
   const categories = {
-    Green: INTERVENTIONS.filter((i) => i.category === "Green"),
-    Mobility: INTERVENTIONS.filter((i) => i.category === "Mobility"),
-    Density: INTERVENTIONS.filter((i) => i.category === "Density"),
-    Infrastructure: INTERVENTIONS.filter((i) => i.category === "Infrastructure"),
+    Green: INTERVENTIONS.filter(
+      (i) => i.category === "Green" && i.name.toLowerCase().includes(search.toLowerCase())
+    ),
+    Mobility: INTERVENTIONS.filter(
+      (i) => i.category === "Mobility" && i.name.toLowerCase().includes(search.toLowerCase())
+    ),
+    Density: INTERVENTIONS.filter(
+      (i) => i.category === "Density" && i.name.toLowerCase().includes(search.toLowerCase())
+    ),
+    Infrastructure: INTERVENTIONS.filter(
+      (i) => i.category === "Infrastructure" && i.name.toLowerCase().includes(search.toLowerCase())
+    ),
   };
 
   const getCategoryTheme = (cat: string) => {
@@ -110,115 +119,144 @@ export default function InterventionToolbar({
         </button>
       </div>
 
+      {/* Search */}
+      {isExpanded && (
+        <div className="px-4 py-2 border-b border-slate-200 bg-white">
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+            <Icons.Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search interventions..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 text-xs bg-transparent outline-none text-slate-700 placeholder-slate-400"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600">
+                <Icons.X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Intervention Scrollarea */}
       <div
-        className={`flex-1 overflow-y-auto space-y-5 custom-scroll bg-white ${isExpanded ? "p-4" : "p-2"}`}
+        className={`flex-1 overflow-y-auto space-y-5 custom-scroll bg-white bg-white max-h-[60vh] ${isExpanded ? "p-4" : "p-2"}`}
       >
-        {Object.entries(categories).map(([catKey, items]) => {
-          const theme = getCategoryTheme(catKey);
-          return (
-            <div
-              key={catKey}
-              className={`space-y-2 ${!isExpanded ? "flex flex-col items-center" : ""}`}
-            >
-              {isExpanded && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
-                    {theme.label}
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${theme.badge}`}
-                  >
-                    {items.length} options
-                  </span>
-                </div>
-              )}
-
-              <div className={`grid gap-1.5 w-full ${isExpanded ? "grid-cols-1" : "grid-cols-1"}`}>
-                {items.map((item) => {
-                  const isActive = selectedId === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      id={`btn-intervention-${item.id}`}
-                      onClick={() => onSelect(item.id)}
-                      onMouseEnter={() => setHoveredIntervention(item)}
-                      onMouseLeave={() => setHoveredIntervention(null)}
-                      title={!isExpanded ? item.name : undefined}
-                      className={`group w-full text-left rounded-lg border text-xs transition-all relative overflow-hidden cursor-pointer flex items-start gap-3 ${
-                        isExpanded ? "p-3" : "p-2 justify-center"
-                      } ${
-                        isActive
-                          ? `${item.color} ${item.borderColor} ring-1 ring-offset-2 ring-offset-white ring-blue-500 shadow-sm`
-                          : "bg-white border-slate-200 text-slate-700 hover:border-slate-350 hover:bg-slate-50"
-                      }`}
+        {Object.entries(categories)
+          .filter(([, items]) => items.length > 0)
+          .map(([catKey, items]) => {
+            const theme = getCategoryTheme(catKey);
+            return (
+              <div
+                key={catKey}
+                className={`space-y-2 ${!isExpanded ? "flex flex-col items-center" : ""}`}
+              >
+                {isExpanded && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
+                      {theme.label}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${theme.badge}`}
                     >
-                      {/* Active indicator dot */}
-                      {isActive && (
-                        <span className="absolute top-1 right-1 flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                        </span>
-                      )}
+                      {items.length} options
+                    </span>
+                  </div>
+                )}
 
-                      {/* Icon */}
-                      <div
-                        className={`p-1.5 rounded-md transition-colors shrink-0 ${
+                <div
+                  className={`grid gap-1.5 w-full ${isExpanded ? "grid-cols-1" : "grid-cols-1"}`}
+                >
+                  {items.map((item) => {
+                    const isActive = selectedId === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        id={`btn-intervention-${item.id}`}
+                        onClick={() => onSelect(item.id)}
+                        onMouseEnter={() => setHoveredIntervention(item)}
+                        onMouseLeave={() => setHoveredIntervention(null)}
+                        title={!isExpanded ? item.name : undefined}
+                        className={`group w-full text-left rounded-lg border text-xs transition-all relative overflow-hidden cursor-pointer flex items-start gap-3 ${
+                          isExpanded ? "p-3" : "p-2 justify-center"
+                        } ${
                           isActive
-                            ? "bg-white/40"
-                            : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-800"
+                            ? `${item.color} ${item.borderColor} ring-1 ring-offset-2 ring-offset-white ring-blue-500 shadow-sm`
+                            : "bg-white border-slate-200 text-slate-700 hover:border-slate-350 hover:bg-slate-50"
                         }`}
                       >
-                        {loadIcon(item.icon)}
-                      </div>
-
-                      {/* Info block */}
-                      {isExpanded && (
-                        <div className="flex-1 min-w-0">
-                          <span className="font-semibold block truncate text-slate-800">
-                            {item.name}
+                        {/* Active indicator dot */}
+                        {isActive && (
+                          <span className="absolute top-1 right-1 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                           </span>
+                        )}
 
-                          {/* Compact delta indicators */}
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {Object.entries(item.impact)
-                              .slice(0, 3)
-                              .map(([key, value]) => {
-                                const valNum = value as number;
-                                const isPositiveImpact =
-                                  key === "noise_score" ||
-                                  key === "heat_risk_score" ||
-                                  key === "traffic_score"
-                                    ? valNum < 0 // lower is better for risk scores
-                                    : valNum > 0; // higher is better for index scores
-
-                                return (
-                                  <span
-                                    key={key}
-                                    className={`text-[9px] font-mono font-bold px-1 rounded-sm border ${
-                                      isPositiveImpact
-                                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                        : "bg-rose-50 text-rose-700 border-rose-100"
-                                    }`}
-                                  >
-                                    {key
-                                      .replace("_score", "")
-                                      .replace("_index", "")
-                                      .replace("green_space", "green")}
-                                    : {valNum > 0 ? `+${valNum}` : valNum}
-                                  </span>
-                                );
-                              })}
-                          </div>
+                        {/* Icon */}
+                        <div
+                          className={`p-1.5 rounded-md transition-colors shrink-0 ${
+                            isActive
+                              ? "bg-white/40"
+                              : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-800"
+                          }`}
+                        >
+                          {loadIcon(item.icon)}
                         </div>
-                      )}
-                    </button>
-                  );
-                })}
+
+                        {/* Info block */}
+                        {isExpanded && (
+                          <div className="flex-1 min-w-0">
+                            <span className="font-semibold block truncate text-slate-800">
+                              {item.name}
+                            </span>
+
+                            {/* Compact delta indicators */}
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {Object.entries(item.impact)
+                                .slice(0, 3)
+                                .map(([key, value]) => {
+                                  const valNum = value as number;
+                                  const isPositiveImpact =
+                                    key === "noise_score" ||
+                                    key === "heat_risk_score" ||
+                                    key === "traffic_score"
+                                      ? valNum < 0 // lower is better for risk scores
+                                      : valNum > 0; // higher is better for index scores
+
+                                  return (
+                                    <span
+                                      key={key}
+                                      className={`text-[9px] font-mono font-bold px-1 rounded-sm border ${
+                                        isPositiveImpact
+                                          ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                          : "bg-rose-50 text-rose-700 border-rose-100"
+                                      }`}
+                                    >
+                                      {key
+                                        .replace("green_space_index", "Green")
+                                        .replace("walkability_score", "Walk")
+                                        .replace("heat_risk_score", "Heat")
+                                        .replace("noise_score", "Noise")
+                                        .replace("traffic_score", "Traffic")
+                                        .replace("accessibility_score", "Access")
+                                        .replace("public_transport_score", "Transit")}
+                                      : {valNum > 0 ? `+${valNum}` : valNum}
+                                    </span>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       {/* Tooltip Hover Overlay Info Banner */}

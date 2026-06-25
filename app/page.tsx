@@ -8,7 +8,17 @@ import InterventionToolbar from "../src/components/InterventionToolbar";
 import PlanLabMap from "../src/components/PlanLabMap";
 import CellDetailsPanel from "../src/components/CellDetailsPanel";
 import ScoreSummary from "../src/components/ScoreSummary";
-import { Sparkles, Info, HelpCircle, GraduationCap, ArrowUpRight, TrendingUp } from "lucide-react";
+import {
+  Sparkles,
+  Info,
+  HelpCircle,
+  GraduationCap,
+  ArrowUpRight,
+  TrendingUp,
+  Save,
+  FolderOpen,
+  X,
+} from "lucide-react";
 
 const cloneCells = (source: GridCell[]): GridCell[] =>
   source.map((cell) => ({
@@ -23,6 +33,16 @@ export default function App() {
   const baselineRef = useRef<GridCell[]>([]);
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/light-v11");
   const [hasNewModifications, setHasNewModifications] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveModalName, setSaveModalName] = useState("");
+  const [saveModalDesc, setSaveModalDesc] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [savedScenarios, setSavedScenarios] = useState<any[]>([]);
+  const [isLoadingScenarios, setIsLoadingScenarios] = useState(false);
+  const [currentScenarioId, setCurrentScenarioId] = useState<string | null>(null);
+  const [currentScenarioName, setCurrentScenarioName] = useState<string>("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
     const fetchGrid = async () => {
@@ -96,6 +116,7 @@ export default function App() {
         return c;
       })
     );
+    setHasNewModifications(true);
   };
 
   // Reset simulator back to unaltered state
@@ -257,6 +278,7 @@ export default function App() {
     }
   };
 
+  // pdf
   const handleDownloadPDF = async () => {
     const scenarioName = prompt("Enter a name for this PDF report:") || "Scenario";
     const { generateScenarioPDF } = await import("../src/lib/generatePDF");
@@ -270,18 +292,24 @@ export default function App() {
   };
 
   // Save current scenario to DB
-  const handleSaveScenario = async () => {
-    const name = prompt("Enter scenario name:");
-    if (!name) return;
+  const handleSaveScenario = () => {
+    setSaveModalName("");
+    setSaveModalDesc("");
+    setShowSaveModal(true);
+  };
 
-    const description = prompt("Enter description (optional):") || "";
+  const handleConfirmSave = async () => {
+    if (!saveModalName.trim()) {
+      showToast("Please enter a scenario name!", "error"); // ← add toast
+      return;
+    }
+    setIsSaving(true);
 
     const cellStates: { [gridId: string]: string } = {};
     cells.forEach((c) => {
       if (c.interventionId) cellStates[c.grid_id] = c.interventionId;
     });
 
-    // Build summary text from current AI advices
     const summary = aiPlanningAdvices
       .map((a) => `${a.type || "success"}|${a.title}|${a.description || a.text}`)
       .join("\n\n");
@@ -290,66 +318,117 @@ export default function App() {
       const res = await fetch("/api/scenarios", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, cellStates, summary }),
+        body: JSON.stringify({
+          name: saveModalName,
+          description: saveModalDesc,
+          cellStates,
+          summary,
+        }),
       });
       const data = await res.json();
       if (data.scenario) {
-        alert(`✅ Saved: "${data.scenario.name}"`);
-        handleReset(); // ← auto reset after save
+        setShowSaveModal(false);
+        showToast(`✅ "${data.scenario.name}" Saved Successfully!`); // ← add toast
+        handleReset();
       }
     } catch (err) {
       console.error("Save error:", err);
-      alert("Failed to save scenario.");
+      showToast("Failed to save scenario. Please try again.", "error"); // ← add toast
+    } finally {
+      setIsSaving(false);
     }
   };
 
   // Load a scenario from DB
   const handleLoadScenario = async () => {
+    setIsLoadingScenarios(true);
+    setShowLoadModal(true);
     try {
       const res = await fetch("/api/scenarios");
       const data = await res.json();
-      if (!data.scenarios?.length) return alert("No saved scenarios found.");
-
-      // Show list to pick from
-      const names = data.scenarios.map((s: any, i: number) => `${i + 1}. ${s.name}`).join("\n");
-      const pick = prompt(`Pick a scenario:\n${names}\nEnter number:`);
-      if (!pick) return;
-
-      const chosen = data.scenarios[parseInt(pick) - 1];
-      if (!chosen) return alert("Invalid selection.");
-
-      // Apply saved interventions back onto baseline
-      const cellStates = chosen.cell_states;
-      setCells(
-        baselineRef.current.map((cell) => ({
-          ...cell,
-          interventionId: cellStates[cell.grid_id] || undefined,
-        }))
-      );
-      setSelectedCellId(null);
-      setHasNewModifications(false);
-
-      // Load saved summary from database instead of regenerating
-      if (chosen.summary && chosen.summary.trim() !== "") {
-        const savedAdvices = chosen.summary.split("\n\n").map((block: string) => {
-          const parts = block.split("|");
-          return {
-            type: parts[0] || "success",
-            title: parts[1] || "",
-            description: parts[2] || "",
-          };
-        });
-        setAiPlanningAdvices(savedAdvices);
-      } else {
-        // No saved summary — clear advisory
-        setAiPlanningAdvices([]);
+      if (!data.scenarios?.length) {
+        setShowLoadModal(false);
+        showToast("No saved scenarios found.", "error");
+        return;
       }
-
-      alert(`Loaded: ${chosen.name}`);
+      setSavedScenarios(data.scenarios || []);
     } catch (err) {
       console.error("Load error:", err);
-      alert("Failed to load scenario.");
+      showToast("Failed to load scenarios. Please try again.", "error");
+    } finally {
+      setIsLoadingScenarios(false);
     }
+  };
+
+  const handleSelectScenario = (chosen: any) => {
+    const cellStates = chosen.cell_states;
+    setCells(
+      baselineRef.current.map((cell) => ({
+        ...cell,
+        interventionId: cellStates[cell.grid_id] || undefined,
+      }))
+    );
+    setSelectedCellId(null);
+    setHasNewModifications(false);
+    setCurrentScenarioId(chosen.id);
+    setCurrentScenarioName(chosen.name);
+
+    if (chosen.summary && chosen.summary.trim() !== "") {
+      const savedAdvices = chosen.summary.split("\n\n").map((block: string) => {
+        const parts = block.split("|");
+        return {
+          type: parts[0] || "success",
+          title: parts[1] || "",
+          description: parts[2] || "",
+        };
+      });
+      setAiPlanningAdvices(savedAdvices);
+    } else {
+      setAiPlanningAdvices([]);
+    }
+
+    setShowLoadModal(false);
+    showToast(`📂 Loaded: "${chosen.name} successfully!"`);
+  };
+
+  const handleUpdateScenario = async () => {
+    if (!currentScenarioId) return;
+    setIsSaving(true);
+
+    const cellStates: { [gridId: string]: string } = {};
+    cells.forEach((c) => {
+      if (c.interventionId) cellStates[c.grid_id] = c.interventionId;
+    });
+
+    const summary = aiPlanningAdvices
+      .map((a) => `${a.type || "success"}|${a.title}|${a.description || a.text}`)
+      .join("\n\n");
+
+    try {
+      const res = await fetch(`/api/scenarios/${currentScenarioId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cellStates, summary }),
+      });
+      const data = await res.json();
+      if (data.scenario) {
+        setCurrentScenarioId(null);
+        setCurrentScenarioName("");
+        showToast(`✅ "${data.scenario.name}" Updated Successfully!`);
+        handleReset();
+      }
+    } catch (err) {
+      console.error("Update error:", err);
+      showToast("Failed to update scenario. Please try again.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // notification
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
@@ -364,6 +443,10 @@ export default function App() {
         activeInterventionsCount={activeInterventionsCount}
         onSaveScenario={handleSaveScenario}
         onLoadScenario={handleLoadScenario}
+        currentScenarioId={currentScenarioId}
+        currentScenarioName={currentScenarioName}
+        hasNewModifications={hasNewModifications}
+        onUpdateScenario={handleUpdateScenario}
       />
 
       {/* Main Sandbox Interactive Area */}
@@ -475,6 +558,190 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* Save Scenario Modal */}
+        {showSaveModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md mx-4 p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <Save className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-slate-800 text-base">Save Scenario</h2>
+                  <p className="text-xs text-slate-500">
+                    {cells.filter((c) => c.interventionId).length} interventions will be saved
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                    Scenario Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Green City Plan, Transit Hub v2"
+                    value={saveModalName}
+                    onChange={(e) => setSaveModalName(e.target.value)}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm outline-none text-slate-800 placeholder-slate-400 ${
+                      saveModalName.trim() === "" &&
+                      isSaving && (
+                        <p className="text-xs text-rose-500 mt-1">Scenario name is required.</p>
+                      )
+                    }
+                        ? "border-rose-400 focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    }`}
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                    Description <span className="text-slate-400">(optional)</span>
+                  </label>
+                  <textarea
+                    placeholder="Brief notes about this scenario..."
+                    value={saveModalDesc}
+                    onChange={(e) => setSaveModalDesc(e.target.value)}
+                    rows={3}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 text-slate-800 placeholder-slate-400 resize-none"
+                  />
+                </div>
+
+                {aiPlanningAdvices.length > 0 && (
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <p className="text-xs text-emerald-700 font-medium">
+                      AI advisory will be saved with this scenario
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2 mt-6">
+                {/* Save as New — only enabled when name is typed */}
+                <button
+                  onClick={handleConfirmSave}
+                  disabled={!saveModalName.trim() || isSaving}
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                    saveModalName.trim() && !isSaving
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  }`}
+                >
+                  <Save className="h-4 w-4" />
+                  {isSaving ? "Saving..." : "Save as New"}
+                </button>
+                <button
+                  onClick={() => setShowSaveModal(false)}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Load Scenario Modal */}
+        {showLoadModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md mx-4 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <FolderOpen className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-slate-800 text-base">Load Scenario</h2>
+                    <p className="text-xs text-slate-500">Select a saved scenario to restore</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowLoadModal(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {isLoadingScenarios ? (
+                <div className="py-8 text-center text-slate-400 text-sm">Loading scenarios...</div>
+              ) : savedScenarios.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-sm">
+                  No saved scenarios found.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[350px] overflow-y-auto">
+                  {savedScenarios.map((scenario) => (
+                    <button
+                      key={scenario.id}
+                      onClick={() => handleSelectScenario(scenario)}
+                      className="w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-sm text-slate-800 group-hover:text-blue-700">
+                            {scenario.name}
+                          </p>
+                          {scenario.description && (
+                            <p className="text-xs text-slate-500 mt-0.5">{scenario.description}</p>
+                          )}
+                          <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                            {new Date(scenario.created_at).toLocaleDateString("en-MY", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <div className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono shrink-0">
+                          {Object.keys(scenario.cell_states || {}).length} cells
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={() => setShowLoadModal(false)}
+                className="w-full mt-4 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {toast && (
+          <div
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all animate-fade-in ${
+              toast.type === "success"
+                ? "bg-white border-emerald-200 text-emerald-800"
+                : "bg-white border-rose-200 text-rose-800"
+            }`}
+          >
+            <div
+              className={`w-2 h-2 rounded-full ${
+                toast.type === "success" ? "bg-emerald-500" : "bg-rose-500"
+              }`}
+            />
+            {toast.message}
+            <button
+              onClick={() => setToast(null)}
+              className="ml-2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* RIGHT COMPONENT: Cell Specs & Score Comparisons */}
         <div className="lg:w-[320px] shrink-0 h-full flex flex-col min-h-[500px] lg:min-h-0 w-full">
