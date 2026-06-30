@@ -31,6 +31,66 @@ const cloneCells = (source: GridCell[]): GridCell[] =>
     interventionId: undefined,
   }));
 
+// PUT THE DATE HELPER HERE
+function normalizeDateValue(value?: string | Date | null) {
+  if (!value) return null;
+
+  const raw = String(value);
+
+  if (raw.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  if (raw.includes("T")) {
+    return `${raw}Z`;
+  }
+
+  return `${raw.replace(" ", "T")}Z`;
+}
+
+function formatMalaysiaDate(value?: string | Date | null) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("en-MY", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kuala_Lumpur",
+  }).format(date);
+}
+
+function getScenarioDateLabel(scenario: any) {
+  const created = normalizeDateValue(scenario.created_at);
+  const updated = normalizeDateValue(scenario.updated_at);
+
+  if (!updated || !created) {
+    return {
+      label: scenario.updated_at ? "Updated: " : "Created: ",
+      value: scenario.updated_at || scenario.created_at,
+    };
+  }
+
+  const createdTime = new Date(created).getTime();
+  const updatedTime = new Date(updated).getTime();
+
+  const hasBeenUpdated =
+    !Number.isNaN(createdTime) && !Number.isNaN(updatedTime) && updatedTime > createdTime + 1000;
+
+  return {
+    label: hasBeenUpdated ? "Updated: " : "Created: ",
+    value: hasBeenUpdated ? scenario.updated_at : scenario.created_at,
+  };
+}
+
 export default function App() {
   // Load baseline JSON dataset on startup
   const [cells, setCells] = useState<GridCell[]>([]);
@@ -50,6 +110,8 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [user] = useAuthState(auth);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfModalName, setPdfModalName] = useState("");
 
   useEffect(() => {
     const fetchGrid = async () => {
@@ -286,8 +348,14 @@ export default function App() {
   };
 
   // pdf
-  const handleDownloadPDF = async () => {
-    const scenarioName = prompt("Enter a name for this PDF report:") || "Scenario";
+  const handleDownloadPDF = () => {
+    setPdfModalName("");
+    setShowPdfModal(true);
+  };
+
+  const handleConfirmDownloadPDF = async () => {
+    const scenarioName = pdfModalName.trim() || "Scenario";
+    setShowPdfModal(false);
     const { generateScenarioPDF } = await import("../src/lib/generatePDF");
     await generateScenarioPDF({
       scenarioName,
@@ -693,20 +761,9 @@ export default function App() {
                           {scenario.description && (
                             <p className="text-xs text-slate-500 mt-0.5">{scenario.description}</p>
                           )}
-                          <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                         <p className="text-[10px] text-slate-400 mt-1 font-mono">
                             {scenario.updated_at ? "Updated: " : "Created: "}
-                            {(() => {
-                              const date = new Date(scenario.updated_at || scenario.created_at);
-                              const myt = new Date(date.getTime() + 8 * 60 * 60 * 1000);
-                              return myt.toLocaleString("en-MY", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                              });
-                            })()}
+                            {formatMalaysiaDate(scenario.updated_at || scenario.created_at)}
                           </p>
                         </div>
                         <div className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono shrink-0">
@@ -764,6 +821,44 @@ export default function App() {
                   className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-all"
                 >
                   Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showPdfModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm mx-4 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-emerald-50 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-slate-800 text-base">Download PDF Report</h2>
+                  <p className="text-xs text-slate-500">Name this report for your records</p>
+                </div>
+              </div>
+              <input
+                type="text"
+                placeholder="e.g. Green City Plan Report"
+                value={pdfModalName}
+                onChange={(e) => setPdfModalName(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 text-slate-800 placeholder-slate-400 mb-5"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowPdfModal(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDownloadPDF}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-all"
+                >
+                  Download
                 </button>
               </div>
             </div>
