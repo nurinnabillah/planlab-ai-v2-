@@ -1,9 +1,11 @@
 steps:
   - name: "gcr.io/cloud-builders/docker"
+    id: "Build"
     args:
       - "build"
+      - "--no-cache"
       - "-t"
-      - "gcr.io/$PROJECT_ID/planlab-ai"
+      - "asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/planlab-ai:$COMMIT_SHA"
       - "--build-arg"
       - "NEXT_PUBLIC_FIREBASE_API_KEY=$_NEXT_PUBLIC_FIREBASE_API_KEY"
       - "--build-arg"
@@ -19,5 +21,30 @@ steps:
       - "--build-arg"
       - "NEXT_PUBLIC_MAPBOX_TOKEN=$_NEXT_PUBLIC_MAPBOX_TOKEN"
       - "."
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "Push"
+    args:
+      - "push"
+      - "asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/planlab-ai:$COMMIT_SHA"
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "Deploy"
+    entrypoint: "gcloud"
+    args:
+      - "run"
+      - "services"
+      - "update"
+      - "planlab-ai"
+      - "--image"
+      - "asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/planlab-ai:$COMMIT_SHA"
+      - "--region"
+      - "asia-southeast1"
+      - "--platform"
+      - "managed"
+
 images:
-  - "gcr.io/$PROJECT_ID/planlab-ai"
+  - "asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/planlab-ai:$COMMIT_SHA"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
